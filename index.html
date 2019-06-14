@@ -69,6 +69,12 @@
         height: 30px;
         display: inline-block;
         border: solid 2px #a9a9a9;
+        vertical-align: middle;
+    }
+
+    .clr-title {
+        display: inline-block;
+        padding-left: 10px; 
     }
 
     </style>
@@ -112,7 +118,11 @@
         </div>
 
         <div class="col-xs-12 margin-top">
-            <div class="colour-list"></div>
+            <div class="colour-list rgb"></div>
+        </div>
+
+        <div class="col-xs-12 margin-top">
+            <div class="colour-list hsl"></div>
         </div>
 
         <div class="col-xs-12 col-md-7 margin-top">
@@ -120,12 +130,8 @@
                 <table class="table table-responsive">
                     <thead>
                         <tr>
-                            <th>Colour</th>
-                            <th>Red</th>
-                            <th>Green</th>
-                            <th>Blue</th>
                             <th>RGB</th>
-                            <th>Hex</th>
+                            <th>HSL</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -158,13 +164,13 @@
             $("#clr2").spectrum({
                 color: "#EC807B",
                 showInput: true,
-                preferredFormat: "rgb"
+                preferredFormat: "hex"
             });
 
             $("#clr1").spectrum({
                 color: "#FBFF00",
                 showInput: true,
-                preferredFormat: "rgb"
+                preferredFormat: "hex"
             });
 
             $("#btnGenerate").click(function() {
@@ -190,6 +196,8 @@
                     alert("You must select a colour count between 3 and 255");
                 } else {
 
+                    // RGB
+
                     var rMin = Math.floor($("#clr1").spectrum("get")._r);
                     var gMin = Math.floor($("#clr1").spectrum("get")._g);
                     var bMin = Math.floor($("#clr1").spectrum("get")._b);
@@ -204,10 +212,102 @@
                         var rAverage = Math.floor(rMin + ((rMax - rMin) * i / count));
                         var gAverage = Math.floor(gMin + ((gMax - gMin) * i / count));
                         var bAverage = Math.floor(bMin + ((bMax - bMin) * i / count));
-                        clrArr.push({ r: rAverage, g: gAverage, b: bAverage, rgb: `rgb(${rAverage}, ${gAverage}, ${bAverage})`, hex: rgbToHex(rAverage, gAverage, bAverage) });
+                        var hslFromRgb = rgbToHsl(rAverage, gAverage, bAverage);
+                        clrArr.push({ 
+                            rgbGradient: { 
+                                rgb: {
+                                    r: rAverage, 
+                                    g: gAverage, 
+                                    b: bAverage,
+                                    cssValue: `rgb(${rAverage}, ${gAverage}, ${bAverage})`
+                                },
+                                hsl: rgbToHsl(rAverage, gAverage, bAverage),
+                                hex: rgbToHex(rAverage, gAverage, bAverage) 
+                            }, 
+                            hslGradient: null
+                        });
                     }
 
-                    clrArr.push({ r: rMax, g: gMax, b: bMax, rgb: `rgb(${rMax}, ${gMax}, ${bMax})`, hex: rgbToHex(rMax, gMax, bMax) });
+                    clrArr.push({ 
+                        rgbGradient: { 
+                            rgb: {    
+                                r: rMax, 
+                                g: gMax, 
+                                b: bMax, 
+                                cssValue: `rgb(${rMax}, ${gMax}, ${bMax})`
+                            },
+                            hsl: rgbToHsl(rMax, gMax, bMax),
+                            hex: rgbToHex(rMax, gMax, bMax) 
+                        }, 
+                        hslGradient: null
+                    });
+
+                    //HSL
+
+                    var hInterval;
+
+                    if(rgbToHsl(rMin, gMin, bMin).h > rgbToHsl(rMax, gMax, bMax).h) {
+                        hInterval = (360 + (rgbToHsl(rMax, gMax, bMax).h - rgbToHsl(rMin, gMin, bMin).h)) / count;
+                    } else {
+                        hInterval = (rgbToHsl(rMax, gMax, bMax).h - rgbToHsl(rMin, gMin, bMin).h) / count;
+                    }
+                    var sInterval = (rgbToHsl(rMax, gMax, bMax).s - rgbToHsl(rMin, gMin, bMin).s) / count;
+                    var lInterval = (rgbToHsl(rMax, gMax, bMax).l - rgbToHsl(rMin, gMin, bMin).l) / count;
+
+                    hInterval = parseFloat(hInterval.toFixed(2));
+                    sInterval = parseFloat(sInterval.toFixed(2));
+                    lInterval = parseFloat(lInterval.toFixed(2));
+
+                    var r = rMin, g = gMin, b = bMin;
+                    var hsl = rgbToHsl(rMin, gMin, bMin);
+
+                    clrArr[0].hslGradient = {
+                        rgb: clrArr[0].rgbGradient.rgb,
+                        hsl: hsl,
+                        hex: clrArr[0].rgbGradient.hex
+                    };
+
+                    var lastIndex = 0;
+
+                    for(i = 1; i < count; i++) {
+
+                        hsl = clrArr[lastIndex].hslGradient.hsl;
+
+                        var newH = hsl.h + hInterval;
+
+                        if(newH > 360) newH -= 360;
+                        if(newH < 0) newH += 360;
+
+                        var newS = hsl.s + sInterval;
+                        var newL = hsl.l + lInterval;
+
+                        newH = parseFloat(newH.toFixed(2));
+                        newS = parseFloat(newS.toFixed(2));
+                        newL = parseFloat(newL.toFixed(2));
+
+                        var rgbVal = hslToRgb(newH, newS, newL);
+
+                        clrArr[i].hslGradient = {
+                            rgb: rgbVal,
+                            hsl: {   
+                                h: newH,
+                                s: newS,
+                                l: newL,
+                                cssValue: `hsl(${newH}, ${newS}%, ${newL}%)`
+                            },
+                            hex: rgbToHex(rgbVal.r, rgbVal.g, rgbVal.b)
+                        };
+
+                        lastIndex++;
+                    }
+
+                    clrArr[clrArr.length-1].hslGradient = {
+                        rgb: clrArr[clrArr.length-1].rgbGradient.rgb,
+                        hsl: rgbToHsl(rMax, gMax, bMax),
+                        hex: clrArr[clrArr.length-1].rgbGradient.hex
+                    };
+
+                    console.log(clrArr);
 
                     if(display) {
 
@@ -217,40 +317,41 @@
 
                         for(i = 0; i < clrArr.length; i ++) {
 
-                            $(".colour-list").append(`<div class="clr-item" id="clr-${i}" title="${clrArr[i].rgb}"></div>`);
+                            $(".colour-list.rgb").append(`<div class="clr-item" id="clr-${i}-rgb" title="${clrArr[i].rgbGradient.rgb.cssValue}"></div>`);
 
-                            $(`#clr-${i}`).css({
-                                "background" : clrArr[i].rgb,
+                            $(`#clr-${i}-rgb`).css({
+                                "background" : clrArr[i].rgbGradient.rgb.cssValue,
+                                "width": width + "%",
+                                "height": "100px",
+                                "display": "inline-block"
+                            });
+
+                            $(".colour-list.hsl").append(`<div class="clr-item" id="clr-${i}-hsl" title="${clrArr[i].hslGradient.hsl.cssValue}"></div>`);
+
+                            $(`#clr-${i}-hsl`).css({
+                                "background" : clrArr[i].hslGradient.hsl.cssValue,
                                 "width": width + "%",
                                 "height": "100px",
                                 "display": "inline-block"
                             });
 
                             $(".table tbody").append(`
-                                    <tr id="list-clr-${i}">
-                                        <td valign="middle">
-                                            <div class="clr-thumb"></div>
-                                        </td>
-                                        
-                                        <td valign="middle">
-                                            ${clrArr[i].r}
-                                        </td>
-                                        <td valign="middle">
-                                            ${clrArr[i].g}
-                                        </td>
-                                        <td valign="middle">
-                                            ${clrArr[i].b}
-                                        </td>
-                                        <td valign="middle">
-                                            ${clrArr[i].rgb}
-                                        </td>
-                                        <td valign="middle">
-                                            ${clrArr[i].hex}
-                                        </td>
-                                    </tr>
+                                <tr id="list-clr-${i}">
+                                    <td valign="middle">
+                                        <div class="clr-thumb rgb"></div>
+                                        <p class="clr-title">${clrArr[i].rgbGradient.rgb.cssValue}</p>
+                                    </td>
+                                    <td valign="middle">
+                                        <div class="clr-thumb hsl"></div>
+                                        <p class="clr-title">${clrArr[i].hslGradient.hsl.cssValue}</p>
+                                    </td>
+                                </tr>
                             `);
-                            $(`#list-clr-${i} .clr-thumb`).css({
-                                "background": clrArr[i].rgb
+                            $(`#list-clr-${i} .clr-thumb.rgb`).css({
+                                "background": clrArr[i].rgbGradient.rgb.cssValue
+                            });
+                            $(`#list-clr-${i} .clr-thumb.hsl`).css({
+                                "background": clrArr[i].hslGradient.hsl.cssValue
                             });
                         }                    
                     }
@@ -269,7 +370,81 @@
                 return `${rHex}${gHex}${bHex}`.toUpperCase();
             }
 
-        });
+            function rgbToHsl(r, g, b) {
+                r /= 255, g /= 255, b /= 255;
+
+                var max = Math.max(r, g, b), min = Math.min(r, g, b);
+                var h, s, l = (max + min) / 2;
+
+                if (max == min) {
+                    h = s = 0; // achromatic
+                } else {
+                    var d = max - min;
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+                    switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                    }
+
+                    h /= 6;
+                }
+
+                var hue = Math.floor(h * 360);
+                var sat = Math.floor(s * 100);
+                var lum = Math.floor(l * 100);
+
+                return {      
+                    h: hue,
+                    s: sat,
+                    l: lum,
+                    cssValue: `hsl(${hue}, ${sat}%, ${lum}%)`
+                };
+            }
+
+            function hslToRgb(h, s, l) {
+
+                h = h / 360;
+                s = s / 100;
+                l = l / 100;
+
+                var r, g, b;
+
+                if (s == 0) {
+                    r = g = b = l; // achromatic
+                } else {
+                    function hue2rgb(p, q, t) {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                    }
+
+                    var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                    var p = 2 * l - q;
+
+                    r = hue2rgb(p, q, h + 1/3);
+                    g = hue2rgb(p, q, h);
+                    b = hue2rgb(p, q, h - 1/3);
+                }
+
+                r = r * 255;
+                g = g * 255;
+                b = b * 255;
+
+                return { 
+                       r: r,
+                       g: g,
+                       b: b,
+                       cssValue: `rgb(${r}, ${g}, ${b})` 
+                };
+            }
+    });
+
+        
     </script>
 
 </body>

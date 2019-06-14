@@ -1,0 +1,277 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Gradient Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css"/>
+
+    <style>
+    .sp-replacer.sp-light, .sp-preview {
+        width: 100% !important;
+    }
+    .sp-dd {
+        display: none !important;
+    }
+
+    .colour-list {
+        line-height: 0;
+    }
+
+    .container-fluid {
+        margin-bottom: 0;
+    }
+
+    .colour-list-values {
+        height: 500px;
+        overflow-y: auto;
+        width: 100%;
+    }
+
+    .list {
+        padding: 10px 0;
+    }
+
+    .list-item {
+        padding: 10px 0;
+        border-bottom: solid 1px #a9a9a9;
+    }
+
+    .margin-top {
+        margin-top: 2em;
+    }
+
+    td {
+        vertical-align: middle !important;
+    }
+
+    .absolute-right {
+        position: absolute;
+        top: 0.8em;
+        right: 3em;
+    }
+
+    textarea {
+        resize: none;
+        height: 500px !important;
+        overflow:visible;
+    }
+
+    .clr-thumb, .clr-text {
+        width: 30px;
+        height: 30px;
+        display: inline-block;
+        border: solid 2px #a9a9a9;
+    }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+            
+        <div class="col-xs-12 margin-top">
+            <h1>Colour Gradient Generator</h1>
+        </div>
+
+        <div class="col-xs-12 margin-top">
+            <div class="container-fluid well">
+                <div class="col-sm-6 col-md-3">
+                    <div class="form-group">
+                        <label>Start Colour</label>
+                        <input type="text" class="form-control" id="clr1">
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <div class="form-group">
+                        <label>End Colour</label>
+                        <input type="text" class="form-control" id="clr2">
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <div class="form-group">
+                        <label>Colour Count</label>
+                        <input type="number" value="20" class="form-control" id="count">
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="btn btn-success btn-block" id="btnGenerate">Generate</button>
+                    </div>
+                </div>
+            </div>  
+        </div>
+
+        <div class="col-xs-12 margin-top">
+            <div class="colour-list"></div>
+        </div>
+
+        <div class="col-xs-12 col-md-7 margin-top">
+            <div class="colour-list-values">
+                <table class="table table-responsive">
+                    <thead>
+                        <tr>
+                            <th>Colour</th>
+                            <th>Red</th>
+                            <th>Green</th>
+                            <th>Blue</th>
+                            <th>RGB</th>
+                            <th>Hex</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                    </tbody>
+                </table>
+            </div>
+        </div>  
+
+        <div class="col-xs-12 col-md-5 margin-top">
+            <div class="code">
+                <button class="btn btn-info absolute-right" id="btnCopy">
+                    Copy JSON
+                </button>
+                <textarea class="form-control" readonly="readonly" id="clrJSON"></textarea>
+            </div>
+        </div>     
+
+    </div>
+
+    <footer>
+        <p class="text-center margin-top">&copy; Alex Davis 2019</p>
+    </footer>
+
+    <script>
+        $(function() {
+
+            var clrArr =[];
+
+            $("#clr2").spectrum({
+                color: "#EC807B",
+                showInput: true,
+                preferredFormat: "rgb"
+            });
+
+            $("#clr1").spectrum({
+                color: "#FBFF00",
+                showInput: true,
+                preferredFormat: "rgb"
+            });
+
+            $("#btnGenerate").click(function() {
+                $("#clrJSON").empty();
+                clrArr = generateColours(true);
+                $("#clrJSON").append(JSON.stringify(clrArr, null, 4));
+            });
+
+            $("#btnCopy").click(function() {
+                $("#clrJSON").select();
+                document.execCommand("copy");
+                toastr.info('Copied JSON output!');
+            });
+
+            clrArr = generateColours(true);
+            $("#clrJSON").append(JSON.stringify(clrArr, null, 4));
+
+            function generateColours(display) {
+
+                var count = $("#count").val();
+
+                if(count < 3 || count > 255) {
+                    alert("You must select a colour count between 3 and 255");
+                } else {
+
+                    var rMin = Math.floor($("#clr1").spectrum("get")._r);
+                    var gMin = Math.floor($("#clr1").spectrum("get")._g);
+                    var bMin = Math.floor($("#clr1").spectrum("get")._b);
+                    var rMax = Math.floor($("#clr2").spectrum("get")._r);
+                    var gMax = Math.floor($("#clr2").spectrum("get")._g);
+                    var bMax = Math.floor($("#clr2").spectrum("get")._b);
+                    
+                    var clrArr = [];       
+                    count = count - 1;
+
+                    for(i = 0; i < count; i++) {
+                        var rAverage = Math.floor(rMin + ((rMax - rMin) * i / count));
+                        var gAverage = Math.floor(gMin + ((gMax - gMin) * i / count));
+                        var bAverage = Math.floor(bMin + ((bMax - bMin) * i / count));
+                        clrArr.push({ r: rAverage, g: gAverage, b: bAverage, rgb: `rgb(${rAverage}, ${gAverage}, ${bAverage})`, hex: rgbToHex(rAverage, gAverage, bAverage) });
+                    }
+
+                    clrArr.push({ r: rMax, g: gMax, b: bMax, rgb: `rgb(${rMax}, ${gMax}, ${bMax})`, hex: rgbToHex(rMax, gMax, bMax) });
+
+                    if(display) {
+
+                        var width =  $(".colour-list").width() / (count+1) / $(".colour-list").width() * 100;
+                        $(".colour-list").empty();
+                        $(".colour-list-values .table tbody").empty();   
+
+                        for(i = 0; i < clrArr.length; i ++) {
+
+                            $(".colour-list").append(`<div class="clr-item" id="clr-${i}" title="${clrArr[i].rgb}"></div>`);
+
+                            $(`#clr-${i}`).css({
+                                "background" : clrArr[i].rgb,
+                                "width": width + "%",
+                                "height": "100px",
+                                "display": "inline-block"
+                            });
+
+                            $(".table tbody").append(`
+                                    <tr id="list-clr-${i}">
+                                        <td valign="middle">
+                                            <div class="clr-thumb"></div>
+                                        </td>
+                                        
+                                        <td valign="middle">
+                                            ${clrArr[i].r}
+                                        </td>
+                                        <td valign="middle">
+                                            ${clrArr[i].g}
+                                        </td>
+                                        <td valign="middle">
+                                            ${clrArr[i].b}
+                                        </td>
+                                        <td valign="middle">
+                                            ${clrArr[i].rgb}
+                                        </td>
+                                        <td valign="middle">
+                                            ${clrArr[i].hex}
+                                        </td>
+                                    </tr>
+                            `);
+                            $(`#list-clr-${i} .clr-thumb`).css({
+                                "background": clrArr[i].rgb
+                            });
+                        }                    
+                    }
+
+                    return clrArr;
+                }
+            }
+
+            function rgbToHex(r, g, b) {
+                var rHex = r.toString(16);
+                var gHex = g.toString(16);
+                var bHex = b.toString(16);
+                if(rHex.length == 1) rHex = "0" + rHex;
+                if(gHex.length == 1) gHex = "0" + gHex;
+                if(bHex.length == 1) bHex = "0" + bHex;
+                return `${rHex}${gHex}${bHex}`.toUpperCase();
+            }
+
+        });
+    </script>
+
+</body>
+
+</html>
